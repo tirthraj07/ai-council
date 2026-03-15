@@ -59,6 +59,18 @@ class RoundRunner:
             initial = "(No topic given)"
         council.forum.broadcast("User", initial)
 
+        print("Enter number of rounds to run (or press Enter to prompt after each round; type /quit to end):")
+        rounds_input = input().strip()
+        try:
+            max_rounds = int(rounds_input) if rounds_input else None
+            if max_rounds is not None and max_rounds < 1:
+                max_rounds = None
+        except ValueError:
+            max_rounds = None
+        fixed_rounds_mode = max_rounds is not None
+        if fixed_rounds_mode:
+            print(f"Running {max_rounds} round(s). No prompt between rounds.\n")
+
         round_summaries: list[str] = []
         round_number = 1
 
@@ -110,6 +122,12 @@ class RoundRunner:
 
             self._write_round(round_number, round_lines)
             round_number += 1
+
+            if fixed_rounds_mode:
+                if round_number > max_rounds:
+                    break
+                initial = "(No new context)"
+                continue
 
             print("\nAdd context for the next round, or type /quit to end the debate:")
             user_input = input().strip()
