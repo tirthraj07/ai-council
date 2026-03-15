@@ -49,9 +49,13 @@ pip install -e .
 
 ### API keys (for cloud providers)
 
-- **Gemini**: Set `GOOGLE_API_KEY`.
-- **OpenAI**: Set `OPENAI_API_KEY`.
+Copy `.env.sample` to `.env` in the project root and set your keys:
+
+- **Gemini**: `GOOGLE_API_KEY` in `.env` (or get one at [Google AI Studio](https://aistudio.google.com/apikey)).
+- **OpenAI**: `OPENAI_API_KEY` in `.env` (or [OpenAI API keys](https://platform.openai.com/api-keys)).
 - **Ollama**: No key; run Ollama locally and pull a model (e.g. `ollama pull llama3.2`).
+
+The app loads `.env` automatically via `python-dotenv`. Do not commit `.env` (it is in `.gitignore`).
 
 Optional: **Web search** uses DuckDuckGo (no key). Scraping uses `requests` (already in dependencies).
 

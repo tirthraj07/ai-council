@@ -19,7 +19,7 @@ agents:
       Your value: Without you, discussions become too pessimistic and kill innovative ideas. Always argue for potential and scale.
       You can broadcast to the forum or whisper to other agents. Stay in character.
     provider: gemini
-    model: gemini-1.5-flash
+    model: gemini-flash-latest
     role: debate
     temperature: 0.75
 
@@ -33,7 +33,7 @@ agents:
       Your value: You prevent wishful thinking and force realism. Never go easy; surface the flaws.
       You can broadcast to the forum or whisper to other agents. Stay in character.
     provider: gemini
-    model: gemini-1.5-flash
+    model: gemini-flash-latest
     role: debate
     temperature: 0.6
 
@@ -46,8 +46,8 @@ agents:
       You often say things like: "The algorithm for this is straightforward, but the data collection problem is huge."
       Your value: You stop ideas that are theoretically good but technically impossible. Ground the debate in buildability.
       You can broadcast to the forum or whisper to other agents. Stay in character.
-    provider: gemini
-    model: gemini-1.5-flash
+    provider: openai
+    model: gpt-5-mini
     role: debate
     temperature: 0.5
 
@@ -60,8 +60,8 @@ agents:
       You often say things like: "The TAM might be limited unless you expand beyond the initial segment."
       Your value: You ensure ideas are economically viable. Push for clear paths to revenue and scale.
       You can broadcast to the forum or whisper to other agents. Stay in character.
-    provider: gemini
-    model: gemini-1.5-flash
+    provider: openai
+    model: gpt-5-mini
     role: debate
     temperature: 0.6
 
@@ -74,8 +74,8 @@ agents:
       You often say things like: "Users already have simple alternatives. Convincing them to switch might be hard."
       Your value: You prevent building things nobody wants. Represent the end user in every argument.
       You can broadcast to the forum or whisper to other agents. Stay in character.
-    provider: gemini
-    model: gemini-1.5-flash
+    provider: ollama
+    model: llama3:8b
     role: debate
     temperature: 0.7
 
@@ -88,8 +88,8 @@ agents:
       You often say things like: "This market already has many established players."
       Your value: You prevent entering saturated markets blindly. Bring data and landscape to the debate.
       You can broadcast to the forum or whisper to other agents. Stay in character.
-    provider: gemini
-    model: gemini-1.5-flash
+    provider: ollama
+    model: llama3:8b
     role: debate
     temperature: 0.55
 
@@ -102,8 +102,8 @@ agents:
       You often say things like: "If this gives bad advice or outcomes, liability could be an issue."
       Your value: You help identify hidden risks early. Surface legal, ethical, and operational pitfalls.
       You can broadcast to the forum or whisper to other agents. Stay in character.
-    provider: gemini
-    model: gemini-1.5-flash
+    provider: ollama
+    model: gemma2:9b
     role: debate
     temperature: 0.5
 
@@ -116,8 +116,8 @@ agents:
       You often say things like: "Start with a narrow use case instead of a full platform."
       Your value: You turn ideas into actionable plans. Push for concrete next steps and minimal first versions.
       You can broadcast to the forum or whisper to other agents. Stay in character.
-    provider: gemini
-    model: gemini-1.5-flash
+    provider: ollama
+    model: gemma2:9b
     role: debate
     temperature: 0.55
 
@@ -130,8 +130,8 @@ agents:
       You often say things like: "Everyone thinks this is small, but niche markets sometimes explode."
       Your value: You prevent groupthink. Argue the opposite of the room when it adds insight.
       You can broadcast to the forum or whisper to other agents. Stay in character.
-    provider: gemini
-    model: gemini-1.5-flash
+    provider: ollama
+    model: mistral:7b
     role: debate
     temperature: 0.8
 
@@ -144,8 +144,8 @@ agents:
       You often say things like: "This reminds me of earlier attempts that failed due to lack of personalization."
       Your value: You add lessons from history. Draw parallels to past cases so the group does not repeat mistakes.
       You can broadcast to the forum or whisper to other agents. Stay in character.
-    provider: gemini
-    model: gemini-1.5-flash
+    provider: ollama
+    model: mistral:7b
     role: debate
     temperature: 0.55
 
@@ -158,8 +158,8 @@ agents:
       You often say things like: "Users might resist because it reduces their sense of control."
       Your value: You predict how people will actually behave, not how we wish they would. Bring psychology into the debate.
       You can broadcast to the forum or whisper to other agents. Stay in character.
-    provider: gemini
-    model: gemini-1.5-flash
+    provider: ollama
+    model: mistral:7b
     role: debate
     temperature: 0.65
 
@@ -169,7 +169,7 @@ agents:
       Synthesize what each personality argued, note agreements and disagreements, and list key points.
       Return only the summary text. Do not add opinion or new arguments.
     provider: gemini
-    model: gemini-1.5-flash
+    model: gemini-flash-latest
     role: summary
     temperature: 0.5
 

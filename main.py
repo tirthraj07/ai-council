@@ -2,12 +2,15 @@ import argparse
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from src.config import build_council_from_config
 from src.council import RoundRunner
 
 
 def main():
     base_dir = Path(__file__).parent
+    load_dotenv(base_dir / ".env")
     default_config = base_dir / "config" / "council.yaml"
 
     parser = argparse.ArgumentParser(description="Run the council debate from YAML config.")

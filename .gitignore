@@ -8,3 +8,6 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Environment and secrets (copy .env.sample to .env and fill in)
+.env

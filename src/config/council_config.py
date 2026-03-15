@@ -37,7 +37,16 @@ def _get_llm_class(provider: str) -> type:
     return _PROVIDER_LLM[provider]
 
 
+_DEFAULT_MODELS: dict[str, str] = {
+    "gemini": "gemini-flash-latest",
+    "openai": "gpt-5-mini",
+    "ollama": "llama3:8b",
+}
+
+
 def _create_llm(provider: str, model: str, **kwargs: Any) -> LLM:
+    if not model or not str(model).strip():
+        model = _DEFAULT_MODELS.get(provider, "gemini-flash-latest")
     cls = _get_llm_class(provider)
     return cls(provider_name=provider, model_name=model, **kwargs)
 
@@ -95,7 +104,7 @@ def build_council_from_config(
         if isinstance(system_prompt, list):
             system_prompt = "\n".join(system_prompt)
         provider = entry.get("provider", "gemini")
-        model = entry.get("model", "gemini-1.5-flash")
+        model = entry.get("model") or _DEFAULT_MODELS.get(provider, "gemini-flash-latest")
         role = entry.get("role", "debate")
         temperature = float(entry.get("temperature", 0.7))
 
