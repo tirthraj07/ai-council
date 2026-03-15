@@ -2,14 +2,21 @@ from typing import Any
 
 
 def _format_tool_info(tools) -> str:
-    """Format tool names and descriptions for injection into the system prompt."""
+    """Format tool names, descriptions, and parameters for injection into the system prompt."""
     if not tools:
         return ""
-    lines = ["Available tools you can call:"]
+    lines = [
+        "Available tools you can call. When you want to use a tool, request it; the runner will execute it and return the result, then you can continue or give your final response.",
+        "",
+    ]
     for t in tools:
         name = getattr(t, "name", str(t))
         desc = getattr(t, "description", "")
-        lines.append(f"- {name}: {desc}")
+        params = getattr(t, "parameters", "")
+        if params:
+            lines.append(f"- {name}({params}): {desc}")
+        else:
+            lines.append(f"- {name}: {desc}")
     return "\n".join(lines)
 
 
@@ -51,15 +58,17 @@ class Agent:
         self,
         user_message: str,
         short_term_limit: int = 10,
+        on_tool_call=None,
     ) -> str:
         """
         Run one conversation turn: inject system/personality, tool info, long-term
         context, and last 5-10 messages into the prompt; then append the exchange
         to short-term and to long-term (full conversation history).
+        Optional on_tool_call(tool_name, arguments, result) for transcript logging.
         Returns the assistant reply content.
         """
         messages = self.build_messages_for_turn(user_message, short_term_limit=short_term_limit)
-        response_content = self.run(messages)
+        response_content = self.run(messages, on_tool_call=on_tool_call)
         if hasattr(self.memory, "add_to_short_term"):
             self.memory.add_to_short_term("user", user_message)
             self.memory.add_to_short_term("assistant", response_content)
@@ -67,8 +76,18 @@ class Agent:
             self.memory.append_turn_to_long_term(user_message, response_content)
         return response_content
 
-    def run(self, messages: list[dict[str, Any]]) -> str:
-        """Run the agent on a pre-built message list; returns final assistant content."""
+    def run(
+        self,
+        messages: list[dict[str, Any]],
+        on_tool_call=None,
+    ) -> str:
+        """
+        Run the agent on a pre-built message list. The runner intercepts tool calls:
+        when the LLM requests a tool, we execute it, append the result to the
+        conversation, and hand control back to the LLM. This repeats until the
+        LLM returns a final text response (no tool call). Returns that final content.
+        Optional on_tool_call(tool_name, arguments, result) invoked after each tool use.
+        """
         messages = list(messages)
         while True:
             response = self.llm.generate(
@@ -76,8 +95,23 @@ class Agent:
                 tools=self.tools.list(),
             )
             if response.type == "tool_call":
-                tool = self.tools.get(response.tool_name)
-                result = tool.run(**response.arguments)
-                messages.append({"role": "tool", "content": result})
+                tool_name = response.tool_name
+                try:
+                    tool = self.tools.get(tool_name)
+                except KeyError:
+                    available = [t.name for t in self.tools.list() if getattr(t, "name", None)]
+                    result = (
+                        f"Error: the tool '{tool_name}' does not exist. "
+                        f"Available tools: {', '.join(available) or 'none'}."
+                    )
+                    messages.append({"role": "tool", "content": result})
+                    if on_tool_call is not None:
+                        on_tool_call(tool_name, response.arguments, result)
+                else:
+                    result = tool.run(**response.arguments)
+                    messages.append({"role": "tool", "content": result})
+                    if on_tool_call is not None:
+                        on_tool_call(tool_name, response.arguments, result)
+                # Control returns to the LLM with the tool result in context
             else:
                 return response.content

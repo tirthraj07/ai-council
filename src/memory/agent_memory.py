@@ -22,6 +22,9 @@ class AgentMemory:
         long_term: LongTermMemory | None = None,
         short_term_max_messages: int = 10,
         long_term_retrieve_n: int = 5,
+        forum: Any = None,
+        whisper_store: Any = None,
+        agent_id: str | None = None,
     ):
         """
         Args:
@@ -29,10 +32,30 @@ class AgentMemory:
             long_term: Long-term memory. If None, agent has no long-term memory.
             short_term_max_messages: Used only when short_term is None. Default 10 (last 5-10 messages).
             long_term_retrieve_n: Number of long-term memories to retrieve per query.
+            forum: Optional shared Forum for broadcast context injection.
+            whisper_store: Optional WhisperStore for whisper-to-me context injection.
+            agent_id: This agent's id; used to fetch whispers addressed to this agent.
         """
         self._short_term = short_term or ShortTermMemory(max_messages=short_term_max_messages)
         self._long_term = long_term
         self._long_term_retrieve_n = long_term_retrieve_n
+        self._forum = forum
+        self._whisper_store = whisper_store
+        self._agent_id = agent_id
+
+    def set_shared_context(
+        self,
+        forum: Any = None,
+        whisper_store: Any = None,
+        agent_id: str | None = None,
+    ) -> None:
+        """Set or override forum, whisper store, and this agent's id for shared context injection."""
+        if forum is not None:
+            self._forum = forum
+        if whisper_store is not None:
+            self._whisper_store = whisper_store
+        if agent_id is not None:
+            self._agent_id = agent_id
 
     @property
     def short_term(self) -> ShortTermMemory:
@@ -109,18 +132,47 @@ class AgentMemory:
         lines = [f"- {r['content']}" for r in retrieved]
         return "\n[Relevant long-term memory]\n" + "\n".join(lines)
 
+    def get_shared_context(
+        self,
+        forum_limit: int = 20,
+        whisper_limit: int = 20,
+    ) -> list[dict[str, Any]]:
+        """
+        Return messages for the common forum and whispers to this agent, for prompt injection.
+        Returns a single user-role message containing both, or empty list if neither is set.
+        """
+        parts = []
+        if self._forum is not None:
+            formatted = getattr(self._forum, "format_recent", lambda n: "")(forum_limit)
+            if formatted:
+                parts.append(formatted)
+        if self._whisper_store is not None and self._agent_id:
+            formatted = getattr(
+                self._whisper_store, "format_for_agent", lambda _id, n: ""
+            )(self._agent_id, whisper_limit)
+            if formatted:
+                parts.append(formatted)
+        if not parts:
+            return []
+        return [{"role": "user", "content": "\n\n".join(parts)}]
+
     def build_context_messages(
         self,
         current_query: str,
         include_short_term: bool = True,
         short_term_limit: int | None = None,
         long_term_n: int | None = None,
+        forum_limit: int = 20,
+        whisper_limit: int = 20,
     ) -> list[dict[str, Any]]:
         """
         Build the list of messages to inject into the prompt before the current turn:
-        recent short-term messages only. Use get_long_term_context() for system prompt.
+        optional forum + whispers, then recent short-term messages.
         Does not include the current user message.
         """
-        if not include_short_term:
-            return []
-        return self.get_recent_messages(limit=short_term_limit)
+        messages = []
+        shared = self.get_shared_context(forum_limit=forum_limit, whisper_limit=whisper_limit)
+        messages.extend(shared)
+        if include_short_term:
+            messages.extend(self.get_recent_messages(limit=short_term_limit))
+        return messages

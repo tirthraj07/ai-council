@@ -1,9 +1,9 @@
 from src.tool import Tool
 
 class HistoryTool(Tool):
-
     name = "get_history"
-    description = "Fetch previous conversation messages"
+    description = "Fetch previous conversation messages from your short-term memory."
+    parameters = "limit (int, optional): number of recent messages to return; default 10"
 
     def __init__(self, memory):
         self.memory = memory
