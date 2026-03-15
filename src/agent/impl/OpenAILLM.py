@@ -1,7 +1,7 @@
 """OpenAI LLM implementation using the openai package."""
 
 import json
-from typing import Any
+from typing import Any, Callable
 
 from src.agent import LLM
 from src.agent.response import LLMResponse
@@ -21,11 +21,20 @@ def _messages_to_openai(messages: list[dict]) -> list[dict]:
         if isinstance(content, dict):
             content = str(content)
         if role == "tool":
-            out.append({"role": "tool", "content": content or "", "tool_call_id": "call_0"})
+            tid = msg.get("tool_call_id", "call_0")
+            out.append({"role": "tool", "content": content or "", "tool_call_id": tid})
             continue
         if role == "assistant":
-            role = "assistant"
-        elif role != "system":
+            if msg.get("tool_calls"):
+                out.append({
+                    "role": "assistant",
+                    "content": content or "",
+                    "tool_calls": msg["tool_calls"],
+                })
+                continue
+            out.append({"role": "assistant", "content": content or ""})
+            continue
+        if role != "system":
             role = "user"
         out.append({"role": role, "content": content or ""})
     return out
@@ -58,6 +67,10 @@ def _tools_to_openai(tools) -> list[dict]:
     ]
 
 
+# Models that only support default temperature (1); do not pass temperature.
+_OPENAI_NO_TEMPERATURE_MODELS = frozenset({"gpt-5-mini", "gpt-4o-mini"})
+
+
 class OpenAILLM(LLM):
     """LLM backed by OpenAI API. Set OPENAI_API_KEY or pass api_key in config."""
 
@@ -67,7 +80,7 @@ class OpenAILLM(LLM):
             raise ImportError("Install openai: pip install openai")
         self._client = OpenAI(api_key=kwargs.get("api_key"))
 
-    def generate(self, messages, tools=None):
+    def generate(self, messages, tools=None, on_stream=None):
         if not messages:
             return LLMResponse.message("")
         openai_messages = _messages_to_openai(messages)
@@ -76,12 +89,17 @@ class OpenAILLM(LLM):
             "model": self.model_name,
             "messages": openai_messages,
         }
-        if self.config.get("temperature") is not None:
+        if self.config.get("temperature") is not None and self.model_name not in _OPENAI_NO_TEMPERATURE_MODELS:
             kwargs["temperature"] = self.config["temperature"]
         if tool_list:
             kwargs["tools"] = tool_list
             kwargs["tool_choice"] = "auto"
+        stream_requested = on_stream is not None
+        if stream_requested:
+            kwargs["stream"] = True
         try:
+            if stream_requested:
+                return self._generate_stream(kwargs, on_stream)
             response = self._client.chat.completions.create(**kwargs)
         except Exception as e:
             return LLMResponse.message(f"Error: {e}")
@@ -99,3 +117,45 @@ class OpenAILLM(LLM):
                 args = {}
             return LLMResponse.tool_call(name, args)
         return LLMResponse.message((msg.content or "").strip())
+
+    def _generate_stream(self, kwargs: dict, on_stream: Callable[[str], None]):
+        """Stream completion and call on_stream for each content delta. Returns full response."""
+        content_parts = []
+        tool_calls_acc: list[dict] = []
+        try:
+            stream = self._client.chat.completions.create(**kwargs)
+            for chunk in stream:
+                if not chunk.choices:
+                    continue
+                delta = chunk.choices[0].delta
+                if delta is None:
+                    continue
+                if getattr(delta, "content", None):
+                    text = delta.content or ""
+                    content_parts.append(text)
+                    if on_stream:
+                        on_stream(text)
+                if getattr(delta, "tool_calls", None) and delta.tool_calls:
+                    for tc in delta.tool_calls:
+                        idx = getattr(tc, "index", 0)
+                        while len(tool_calls_acc) <= idx:
+                            tool_calls_acc.append({"id": "", "name": "", "arguments": ""})
+                        if getattr(tc, "id", None):
+                            tool_calls_acc[idx]["id"] = tc.id or tool_calls_acc[idx]["id"]
+                        if getattr(tc.function, "name", None):
+                            tool_calls_acc[idx]["name"] = (tc.function.name or "") or tool_calls_acc[idx]["name"]
+                        if getattr(tc.function, "arguments", None):
+                            tool_calls_acc[idx]["arguments"] += tc.function.arguments or ""
+            full_content = "".join(content_parts)
+            if tool_calls_acc and any(tc.get("name") for tc in tool_calls_acc):
+                tc = tool_calls_acc[0]
+                name = tc.get("name", "") or "tool"
+                args_str = tc.get("arguments", "{}")
+                try:
+                    args = json.loads(args_str)
+                except Exception:
+                    args = {}
+                return LLMResponse.tool_call(name, args)
+            return LLMResponse.message(full_content.strip())
+        except Exception as e:
+            return LLMResponse.message(f"Error: {e}")

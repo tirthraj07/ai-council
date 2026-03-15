@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 
@@ -59,16 +60,18 @@ class Agent:
         user_message: str,
         short_term_limit: int = 10,
         on_tool_call=None,
+        on_stream=None,
     ) -> str:
         """
         Run one conversation turn: inject system/personality, tool info, long-term
         context, and last 5-10 messages into the prompt; then append the exchange
         to short-term and to long-term (full conversation history).
         Optional on_tool_call(tool_name, arguments, result) for transcript logging.
+        Optional on_stream(chunk) to stream each text chunk to the terminal.
         Returns the assistant reply content.
         """
         messages = self.build_messages_for_turn(user_message, short_term_limit=short_term_limit)
-        response_content = self.run(messages, on_tool_call=on_tool_call)
+        response_content = self.run(messages, on_tool_call=on_tool_call, on_stream=on_stream)
         if hasattr(self.memory, "add_to_short_term"):
             self.memory.add_to_short_term("user", user_message)
             self.memory.add_to_short_term("assistant", response_content)
@@ -80,6 +83,7 @@ class Agent:
         self,
         messages: list[dict[str, Any]],
         on_tool_call=None,
+        on_stream=None,
     ) -> str:
         """
         Run the agent on a pre-built message list. The runner intercepts tool calls:
@@ -87,15 +91,35 @@ class Agent:
         conversation, and hand control back to the LLM. This repeats until the
         LLM returns a final text response (no tool call). Returns that final content.
         Optional on_tool_call(tool_name, arguments, result) invoked after each tool use.
+        Optional on_stream(chunk) to stream each text chunk (only for final text response).
         """
         messages = list(messages)
+        tool_call_id = 0
         while True:
             response = self.llm.generate(
                 messages,
                 tools=self.tools.list(),
+                on_stream=on_stream,
             )
             if response.type == "tool_call":
                 tool_name = response.tool_name
+                call_id = f"call_{tool_call_id}"
+                tool_call_id += 1
+                assistant_tool_calls = [
+                    {
+                        "id": call_id,
+                        "type": "function",
+                        "function": {
+                            "name": tool_name,
+                            "arguments": json.dumps(response.arguments),
+                        },
+                    }
+                ]
+                messages.append({
+                    "role": "assistant",
+                    "content": "",
+                    "tool_calls": assistant_tool_calls,
+                })
                 try:
                     tool = self.tools.get(tool_name)
                 except KeyError:
@@ -104,14 +128,13 @@ class Agent:
                         f"Error: the tool '{tool_name}' does not exist. "
                         f"Available tools: {', '.join(available) or 'none'}."
                     )
-                    messages.append({"role": "tool", "content": result})
+                    messages.append({"role": "tool", "content": result, "tool_call_id": call_id})
                     if on_tool_call is not None:
                         on_tool_call(tool_name, response.arguments, result)
                 else:
                     result = tool.run(**response.arguments)
-                    messages.append({"role": "tool", "content": result})
+                    messages.append({"role": "tool", "content": result, "tool_call_id": call_id})
                     if on_tool_call is not None:
                         on_tool_call(tool_name, response.arguments, result)
-                # Control returns to the LLM with the tool result in context
             else:
                 return response.content

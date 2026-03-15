@@ -9,6 +9,7 @@ def create_agent_memory(
     short_term_max_messages: int = 10,
     long_term_persist_path: str | None = None,
     long_term_retrieve_n: int = 5,
+    long_term_client=None,
     forum=None,
     whisper_store=None,
 ) -> AgentMemory:
@@ -16,10 +17,14 @@ def create_agent_memory(
     Create an AgentMemory with short-term buffer (last 5-10 messages) and optional
     long-term Chroma store (full conversation history). Optionally pass forum and
     whisper_store for council-style shared context.
+    If long_term_client is provided, it is used as the Chroma client (avoids creating
+    multiple clients to the same path in parallel).
     """
     short_term = ShortTermMemory(max_messages=short_term_max_messages)
     long_term = None
-    if long_term_persist_path is not None:
+    if long_term_client is not None:
+        long_term = LongTermMemory(agent_id=agent_id, client=long_term_client)
+    elif long_term_persist_path is not None:
         long_term = LongTermMemory(
             agent_id=agent_id,
             persist_directory=long_term_persist_path,

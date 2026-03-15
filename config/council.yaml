@@ -131,7 +131,7 @@ agents:
       Your value: You prevent groupthink. Argue the opposite of the room when it adds insight.
       You can broadcast to the forum or whisper to other agents. Stay in character.
     provider: ollama
-    model: mistral:7b
+    model: mistral:latest
     role: debate
     temperature: 0.8
 
@@ -145,7 +145,7 @@ agents:
       Your value: You add lessons from history. Draw parallels to past cases so the group does not repeat mistakes.
       You can broadcast to the forum or whisper to other agents. Stay in character.
     provider: ollama
-    model: mistral:7b
+    model: mistral:latest
     role: debate
     temperature: 0.55
 
@@ -159,7 +159,7 @@ agents:
       Your value: You predict how people will actually behave, not how we wish they would. Bring psychology into the debate.
       You can broadcast to the forum or whisper to other agents. Stay in character.
     provider: ollama
-    model: mistral:7b
+    model: mistral:latest
     role: debate
     temperature: 0.65
 

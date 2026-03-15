@@ -11,3 +11,6 @@ wheels/
 
 # Environment and secrets (copy .env.sample to .env and fill in)
 .env
+
+data/
+debate_transcript.txt

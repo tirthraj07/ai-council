@@ -90,11 +90,13 @@ class Council:
         user_message: str,
         short_term_limit: int = 10,
         on_tool_call=None,
+        on_stream=None,
     ) -> str:
         """
         Run one turn for the named agent. The agent sees recent forum broadcasts
         and whispers to them, then processes the user message.
         Optional on_tool_call(tool_name, arguments, result) for transcript logging.
+        Optional on_stream(chunk) to stream each text chunk to the terminal.
         """
         agent = self.get_agent(agent_name)
         if not hasattr(agent, "run_turn"):
@@ -103,4 +105,5 @@ class Council:
             user_message,
             short_term_limit=short_term_limit,
             on_tool_call=on_tool_call,
+            on_stream=on_stream,
         )

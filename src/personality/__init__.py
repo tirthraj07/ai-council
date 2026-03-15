@@ -1,3 +1,3 @@
-from personality.personality import Personality
+from src.personality.personality import Personality
 
-__all__ = [ "Personality"]
+__all__ = ["Personality"]

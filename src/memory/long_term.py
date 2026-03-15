@@ -29,12 +29,14 @@ class LongTermMemory:
         agent_id: str,
         persist_directory: str | Path | None = None,
         embedding_function: Any = None,
+        client: Any = None,
     ):
         """
         Args:
             agent_id: Unique identifier for this agent. Used as the Chroma collection name.
-            persist_directory: Directory for Chroma persistence. If None, uses in-memory only.
+            persist_directory: Directory for Chroma persistence. If None and client is None, uses in-memory only.
             embedding_function: Chroma embedding function. If None, uses Chroma default.
+            client: Optional shared Chroma client. If provided, persist_directory is ignored for client creation.
         """
         if chromadb is None:
             raise ImportError(
@@ -43,7 +45,7 @@ class LongTermMemory:
         self._agent_id = self._sanitize_collection_name(agent_id)
         self._persist_directory = str(persist_directory) if persist_directory else None
         self._embedding_function = embedding_function
-        self._client = self._create_client()
+        self._client = client if client is not None else self._create_client()
         kwargs = {"name": self._agent_id}
         if self._embedding_function is not None:
             kwargs["embedding_function"] = self._embedding_function

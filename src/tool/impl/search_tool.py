@@ -1,12 +1,18 @@
 """Web search tool: search the web and optionally scrape top results for context."""
 
 import re
+import warnings
 from src.tool import Tool
 
 try:
-    from duckduckgo_search import DDGS
+    from ddgs import DDGS
 except ImportError:
-    DDGS = None
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        try:
+            from duckduckgo_search import DDGS
+        except ImportError:
+            DDGS = None
 
 try:
     import requests
@@ -16,6 +22,21 @@ except ImportError:
 _DEFAULT_MAX_RESULTS = 5
 _MAX_SCRAPE_CHARS = 4000
 _REQUEST_TIMEOUT = 10
+
+
+def _alternative_queries(query: str) -> list[str]:
+    """Build fallback queries when the original returns no results (shorter, key terms)."""
+    words = [w for w in query.split() if len(w) > 1]
+    if not words:
+        return []
+    alternatives = []
+    if len(words) > 4:
+        alternatives.append(" ".join(words[:4]))
+    if len(words) > 2:
+        alternatives.append(" ".join(words[:2]))
+    if len(words) > 1:
+        alternatives.append(words[0])
+    return alternatives[:3]
 
 
 def _extract_text_from_url(url: str, max_chars: int = _MAX_SCRAPE_CHARS) -> str:
@@ -63,9 +84,15 @@ class SearchTool(Tool):
 
     def __init__(self, max_results: int = _DEFAULT_MAX_RESULTS, scrape_top: int = 0):
         if DDGS is None:
-            raise ImportError("Install duckduckgo-search: pip install duckduckgo-search")
+            raise ImportError("Install ddgs for web search: pip install ddgs")
         self._default_max_results = max(1, min(max_results, 10))
         self._scrape_top = max(0, min(scrape_top, 2))
+
+    def _do_search(self, query: str, n: int) -> list[dict]:
+        """Run one search; suppresses duckduckgo_search rename warning if present."""
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+            return list(DDGS().text(query, max_results=n))
 
     def run(
         self,
@@ -82,14 +109,30 @@ class SearchTool(Tool):
         do_scrape = max(0, min(do_scrape, 2))
 
         try:
-            results = list(DDGS().text(query, max_results=n))
+            results = self._do_search(query, n)
+            used_query = query
+            if not results:
+                for alt in _alternative_queries(query):
+                    if alt and alt != query:
+                        results = self._do_search(alt, n)
+                        if results:
+                            used_query = alt
+                            break
         except Exception as e:
             return f"Search failed: {e}"
 
         if not results:
-            return "No results found."
+            tried = [query] + [q for q in _alternative_queries(query) if q and q != query]
+            return (
+                f"No results found for: \"{query}\". "
+                f"Tried fallback queries: {tried}. "
+                "Suggest rephrasing with simpler or fewer terms, or different keywords."
+            )
 
-        lines = [f"Search results for: {query}", ""]
+        lines = [f"Search results for: {used_query}", ""]
+        if used_query != query:
+            lines.append(f"(Original query \"{query}\" had no results; showing results for shorter query.)")
+            lines.append("")
         for i, r in enumerate(results):
             title = r.get("title", "")
             href = r.get("href", r.get("link", ""))
