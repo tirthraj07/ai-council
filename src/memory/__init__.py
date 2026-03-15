@@ -6,14 +6,14 @@ from src.memory.agent_memory import AgentMemory
 def create_agent_memory(
     agent_id: str,
     *,
-    short_term_max_messages: int = 20,
+    short_term_max_messages: int = 10,
     long_term_persist_path: str | None = None,
     long_term_retrieve_n: int = 5,
 ) -> AgentMemory:
     """
-    Create an AgentMemory with short-term buffer and optional long-term Chroma store.
-    Each agent_id gets its own short-term buffer; if long_term_persist_path is set,
-    long-term uses a dedicated Chroma collection for this agent.
+    Create an AgentMemory with short-term buffer (last 5-10 messages) and optional
+    long-term Chroma store (full conversation history). Each agent_id gets its own
+    short-term buffer and, if long_term_persist_path is set, its own Chroma collection.
     """
     short_term = ShortTermMemory(max_messages=short_term_max_messages)
     long_term = None

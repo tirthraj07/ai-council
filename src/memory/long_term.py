@@ -20,8 +20,8 @@ except ImportError:
 class LongTermMemory:
     """
     Vector-backed long-term memory using Chroma. One collection per agent.
-    Call add() to store facts or conversation summaries; call retrieve() to get
-    relevant memories for the current context.
+    Stores the full conversation history (each turn appended) and supports
+    similarity retrieval for relevant past context.
     """
 
     def __init__(
@@ -48,6 +48,7 @@ class LongTermMemory:
         if self._embedding_function is not None:
             kwargs["embedding_function"] = self._embedding_function
         self._collection = self._client.get_or_create_collection(**kwargs)
+        self._turn_count = 0
 
     @staticmethod
     def _sanitize_collection_name(name: str) -> str:
@@ -125,3 +126,26 @@ class LongTermMemory:
         """Remove memories by id."""
         if ids:
             self._collection.delete(ids=ids)
+
+    def append_turn(
+        self,
+        user_message: str,
+        assistant_message: str,
+        tool_calls_summary: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> str:
+        """
+        Append one conversation turn to long-term history. Stored as a single
+        document for retrieval by similarity. Returns the document id.
+        """
+        self._turn_count += 1
+        parts = [f"User: {user_message}", f"Assistant: {assistant_message}"]
+        if tool_calls_summary:
+            parts.append(f"Tools used: {tool_calls_summary}")
+        content = "\n".join(parts)
+        meta = metadata or {}
+        meta["turn_index"] = self._turn_count
+        meta["type"] = "conversation_turn"
+        doc_id = f"turn_{self._turn_count}_{uuid.uuid4().hex[:8]}"
+        self.add(content=content, metadata=meta, id=doc_id)
+        return doc_id

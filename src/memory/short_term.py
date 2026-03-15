@@ -13,10 +13,10 @@ class ShortTermMemory:
     the prompt sent to the LLM (no separate retrieval step).
     """
 
-    def __init__(self, max_messages: int = 20):
+    def __init__(self, max_messages: int = 10):
         """
         Args:
-            max_messages: Maximum number of messages to retain. Oldest are dropped when exceeded.
+            max_messages: Maximum number of messages to retain (e.g. 5-10). Oldest are dropped when exceeded.
         """
         self._max_messages = max(1, max_messages)
         self._messages: deque[dict[str, Any]] = deque(maxlen=self._max_messages)

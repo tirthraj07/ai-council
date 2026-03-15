@@ -20,14 +20,14 @@ class AgentMemory:
         self,
         short_term: ShortTermMemory | None = None,
         long_term: LongTermMemory | None = None,
-        short_term_max_messages: int = 20,
+        short_term_max_messages: int = 10,
         long_term_retrieve_n: int = 5,
     ):
         """
         Args:
             short_term: Short-term memory. If None, a new one is created.
             long_term: Long-term memory. If None, agent has no long-term memory.
-            short_term_max_messages: Used only when short_term is None.
+            short_term_max_messages: Used only when short_term is None. Default 10 (last 5-10 messages).
             long_term_retrieve_n: Number of long-term memories to retrieve per query.
         """
         self._short_term = short_term or ShortTermMemory(max_messages=short_term_max_messages)
@@ -75,6 +75,24 @@ class AgentMemory:
         if self._long_term is None:
             return None
         return self._long_term.add(content=content, metadata=metadata)
+
+    def append_turn_to_long_term(
+        self,
+        user_message: str,
+        assistant_message: str,
+        tool_calls_summary: str | None = None,
+    ) -> str | None:
+        """
+        Append one full conversation turn to long-term history (entire conversation stored).
+        Returns document id or None if long-term not configured.
+        """
+        if self._long_term is None:
+            return None
+        return self._long_term.append_turn(
+            user_message=user_message,
+            assistant_message=assistant_message,
+            tool_calls_summary=tool_calls_summary,
+        )
 
     def get_long_term_context(
         self,

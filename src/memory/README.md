@@ -2,8 +2,11 @@
 
 Each agent has two kinds of memory:
 
-- **Short-term**: Recent conversation turns kept in memory and injected into the LLM prompt (in-context). Implemented as a sliding window of messages.
-- **Long-term**: Stored in a vector database (Chroma). Each agent has its own collection. Memories are retrieved by similarity and injected into the system prompt when relevant.
+- **Short-term (in-context)**: Injected into the LLM prompt each turn. It includes:
+  - System prompt and personality
+  - Last 5–10 messages (configurable)
+  - Tool information (names and descriptions of tools the agent can call)
+- **Long-term**: Full conversation history stored in a vector database (Chroma). Each agent has its own collection. Every turn is appended; retrieval by similarity injects relevant past context into the system prompt.
 
 ## Usage
 
@@ -14,16 +17,16 @@ from src.memory import create_agent_memory
 
 memory = create_agent_memory(
     agent_id="my_agent",
-    short_term_max_messages=20,
+    short_term_max_messages=10,
     long_term_persist_path="./data/chroma",
     long_term_retrieve_n=5,
 )
 ```
 
 - `agent_id`: Unique id for the agent; used as the Chroma collection name.
-- `short_term_max_messages`: Max number of recent messages to keep and inject.
+- `short_term_max_messages`: Number of recent messages to keep and inject (default 10; use 5–10 for “last 5–10 messages”).
 - `long_term_persist_path`: Directory for Chroma persistence. Omit for in-memory only (no long-term).
-- `long_term_retrieve_n`: How many long-term memories to retrieve per turn.
+- `long_term_retrieve_n`: How many long-term (conversation) turns to retrieve by similarity per turn.
 
 ### Use with Agent
 
@@ -41,18 +44,25 @@ agent = Agent(llm=llm, personality=personality, tools=tools, memory=memory)
 reply = agent.run_turn("What do you think of X?")
 ```
 
-- `run_turn(user_message)` builds the prompt from personality + long-term retrieval + short-term messages + current message, runs the LLM, then appends the exchange to short-term.
+- `run_turn(user_message)` builds the prompt as: **system** (personality + retrieved long-term context + tool list) + **last 5–10 messages** + **current user message**. After the turn it appends the exchange to short-term and to long-term (full history).
 - `run(messages)` uses a pre-built message list and does not update memory.
 
-### Storing long-term memories
+### What is stored where
 
-To add something to long-term memory (e.g. after a turn or from a tool):
+| Content                    | Short-term (in prompt)     | Long-term (Chroma)        |
+|---------------------------|----------------------------|----------------------------|
+| System prompt & personality | Injected each turn         | Not stored                 |
+| Tool names & descriptions | Injected each turn         | Not stored                 |
+| Last 5–10 messages        | Injected each turn         | —                          |
+| Full conversation history| —                          | One document per turn      |
+
+Each turn is stored in long-term as a single document (user + assistant text, optional tool summary) so you can retrieve similar past turns. You can also store one-off facts with `store_long_term(...)`.
+
+### Optional: store extra long-term facts
 
 ```python
 agent.memory.store_long_term("User prefers concise answers.", metadata={"source": "feedback"})
 ```
-
-Retrieval is automatic: each turn, the current user message is used as the query to fetch relevant long-term memories, which are appended to the system prompt.
 
 ## Dependencies
 
