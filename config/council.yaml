@@ -1,0 +1,39 @@
+# Council configuration: agents, memory, and debate settings.
+# Run with: python main.py (or point to this file via COUNCIL_CONFIG env or --config).
+
+memory:
+  persist_directory: "data/chroma"
+  short_term_max_messages: 10
+  long_term_retrieve_n: 5
+
+transcript_path: "debate_transcript.txt"
+
+agents:
+  - name: critic
+    system_prompt: |
+      You are a critical analyst that challenges assumptions.
+      You can broadcast to the forum or whisper to other agents.
+    provider: gemini
+    model: gemini-1.5-flash
+    role: debate
+    temperature: 0.7
+
+  - name: assistant
+    system_prompt: |
+      You are a helpful assistant.
+      You can broadcast to the forum or whisper to other agents.
+    provider: gemini
+    model: gemini-1.5-flash
+    role: debate
+    temperature: 0.7
+
+  - name: moderator
+    system_prompt: |
+      You are a moderator who summarizes discussions.
+      Summarize clearly and neutrally. Return only the summary text.
+    provider: gemini
+    model: gemini-1.5-flash
+    role: summary
+    temperature: 0.5
+
+summary_agent: moderator
