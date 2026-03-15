@@ -19,6 +19,7 @@ from src.memory import create_agent_memory
 from src.personality import Personality
 from src.tool import ToolRegistry
 from src.tool.impl.history_tool import HistoryTool
+from src.tool.impl.search_tool import SearchTool
 
 _PROVIDER_LLM: dict[str, type] = {
     "gemini": GeminiLLM,
@@ -108,6 +109,10 @@ def build_council_from_config(
         )
         tools = ToolRegistry()
         tools.register(HistoryTool(memory))
+        try:
+            tools.register(SearchTool(max_results=5, scrape_top=1))
+        except ImportError:
+            pass
         llm = _create_llm(provider, model, temperature=temperature)
         personality = Personality(
             name=name,

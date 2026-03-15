@@ -54,6 +54,9 @@ def _tools_to_gemini(tools) -> list[dict]:
                     "message": {"type": "string", "description": "Message or content"},
                     "to_agent": {"type": "string", "description": "Agent name to send to"},
                     "limit": {"type": "integer", "description": "Limit for history"},
+                    "query": {"type": "string", "description": "Search query for web search"},
+                    "max_results": {"type": "integer", "description": "Max search results to return"},
+                    "scrape_top": {"type": "integer", "description": "Number of top results to scrape (0-2)"},
                 },
             },
         })
