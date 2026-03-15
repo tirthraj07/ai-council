@@ -12,6 +12,8 @@ except ImportError:
 
 from src.agent import Agent, LLM
 from src.agent.impl.GeminiLLM import GeminiLLM
+from src.agent.impl.OpenAILLM import OpenAILLM
+from src.agent.impl.OllamaLLM import OllamaLLM
 from src.council import Council
 from src.memory import create_agent_memory
 from src.personality import Personality
@@ -20,6 +22,8 @@ from src.tool.impl.history_tool import HistoryTool
 
 _PROVIDER_LLM: dict[str, type] = {
     "gemini": GeminiLLM,
+    "openai": OpenAILLM,
+    "ollama": OllamaLLM,
 }
 
 
@@ -104,7 +108,7 @@ def build_council_from_config(
         )
         tools = ToolRegistry()
         tools.register(HistoryTool(memory))
-        llm = _create_llm(provider, model)
+        llm = _create_llm(provider, model, temperature=temperature)
         personality = Personality(
             name=name,
             system_prompt=system_prompt.strip(),

@@ -9,11 +9,17 @@ The council is defined in YAML. By default `main.py` loads `config/council.yaml`
 - **agents**: List of agent definitions. Each entry:
   - **name** (required): Unique agent name.
   - **system_prompt** (required): Personality and instructions (string or multi-line).
-  - **provider** (optional): LLM provider, e.g. `gemini`. Default `gemini`.
-  - **model** (optional): Model name, e.g. `gemini-1.5-flash`. Default `gemini-1.5-flash`.
+  - **provider** (optional): LLM provider: `gemini`, `openai`, or `ollama`. Default `gemini`.
+  - **model** (optional): Model name (e.g. `gemini-1.5-flash`, `gpt-4o`, `llama3.2`). Default `gemini-1.5-flash`.
   - **role** (optional): `debate` (speaks in rounds, has broadcast/whisper) or `summary` (summarizes only). Default `debate`.
   - **temperature** (optional): Float for the LLM. Default `0.7`.
 - **summary_agent** (optional): Name of the agent that performs per-round and final summaries. Must match one of the agent names and should have `role: summary`.
+
+## Providers
+
+- **gemini**: Set `GOOGLE_API_KEY`. Uses `google-generativeai`.
+- **openai**: Set `OPENAI_API_KEY` (or pass `api_key` in agent config). Uses `openai`.
+- **ollama**: No API key. Ensure Ollama is running locally and the model is pulled (e.g. `ollama pull llama3.2`). Uses `ollama`.
 
 ## Example
 
