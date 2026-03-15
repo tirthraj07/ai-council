@@ -128,12 +128,22 @@ class Agent:
                         f"Error: the tool '{tool_name}' does not exist. "
                         f"Available tools: {', '.join(available) or 'none'}."
                     )
-                    messages.append({"role": "tool", "content": result, "tool_call_id": call_id})
+                    messages.append({
+                        "role": "tool",
+                        "content": result,
+                        "tool_call_id": call_id,
+                        "tool_name": tool_name,
+                    })
                     if on_tool_call is not None:
                         on_tool_call(tool_name, response.arguments, result)
                 else:
                     result = tool.run(**response.arguments)
-                    messages.append({"role": "tool", "content": result, "tool_call_id": call_id})
+                    messages.append({
+                        "role": "tool",
+                        "content": result,
+                        "tool_call_id": call_id,
+                        "tool_name": tool_name,
+                    })
                     if on_tool_call is not None:
                         on_tool_call(tool_name, response.arguments, result)
             else:

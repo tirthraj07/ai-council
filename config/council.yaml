@@ -65,6 +65,7 @@ agents:
     role: debate
     temperature: 0.6
 
+  # Ollama agents need tool-calling–capable models (e.g. llama3.1, qwen2.5). Run: ollama pull llama3.1:8b
   - name: user_advocate
     system_prompt: |
       You are The User Advocate: the human perspective. Your core mindset is "Do people actually want this?"
@@ -75,7 +76,7 @@ agents:
       Your value: You prevent building things nobody wants. Represent the end user in every argument.
       You can broadcast to the forum or whisper to other agents. Stay in character.
     provider: ollama
-    model: llama3:8b
+    model: llama3.1:8b
     role: debate
     temperature: 0.7
 
@@ -89,7 +90,7 @@ agents:
       Your value: You prevent entering saturated markets blindly. Bring data and landscape to the debate.
       You can broadcast to the forum or whisper to other agents. Stay in character.
     provider: ollama
-    model: llama3:8b
+    model: llama3.1:8b
     role: debate
     temperature: 0.55
 
