@@ -1,3 +1,4 @@
+![](public/ai_council_header.png)
 # AI Council
 
 A multi-agent debate system where several LLM agents with distinct personalities discuss a topic in rounds. Each agent can broadcast to a shared forum, whisper to another agent, search the web, and use conversation history. A summary agent wraps each round and the full debate. Useful for idea stress-testing, market-style feedback, and structured deliberation without a single model’s bias.

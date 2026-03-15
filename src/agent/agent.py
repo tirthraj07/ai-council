@@ -1,3 +1,4 @@
+import inspect
 import json
 from typing import Any
 
@@ -137,7 +138,10 @@ class Agent:
                     if on_tool_call is not None:
                         on_tool_call(tool_name, response.arguments, result)
                 else:
-                    result = tool.run(**response.arguments)
+                    sig = inspect.signature(tool.run)
+                    allowed = {p for p in sig.parameters if p != "self"}
+                    filtered = {k: v for k, v in response.arguments.items() if k in allowed}
+                    result = tool.run(**filtered)
                     messages.append({
                         "role": "tool",
                         "content": result,
